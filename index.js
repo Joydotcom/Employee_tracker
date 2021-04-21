@@ -25,15 +25,15 @@ const employeeTrack = () => {
       choices: [
         "View all Employees",
         "View all Employees by Manager",
-        "Add Employee",
-        "Remove Employee",
-        "Update Manager",
-        "View Roles",
-        "Update Role",
-        "Add Role",
-        "Remove Role",
         "View Departments",
+        "View Roles",
+        "Add Employee",
+        "Add Role",
         "Add Departments",
+        "Update Manager",
+        "Update Role",
+        "Remove Employee",
+        "Remove Role",
         "Remove Departments",
       ],
     })
@@ -43,38 +43,39 @@ const employeeTrack = () => {
         case "View all Employees":
           viewEmployees();
           break;
-        case 'View all Employees by Manager':
-            viewByManager();
-            break;
+        case "View all Employees by Manager":
+          viewByManager();
+          break;
+        case "View Roles":
+          viewRoles();
+          break;
+        case "View Departments":
+          viewDepartments();
+          break;
         case "Add Employee":
           addEmployee();
           break;
-            case 'Remove Employee':
-                removeEmployee();
-                break;
-        case "Update Role":
-          updateRole();
+        case "Add Role":
+          addRole();
           break;
-        //     case 'Update Manager':
-        //         updateManager();
-        //     case 'View Roles':
-        //         viewRoles();
-        //         break;
-            case 'Add Role':
-                addRole();
-                break;
-        case "Remove Role":
-          removeRole();
-          break;
-        case 'View Departments':
-            viewDepartments();
-            break;
         // case 'Add Departments':
         //     addDepartments();
         //     break;
-        // case 'Remove Departments':
-        //     removeDepartments();
-        //     break;
+        //     case 'Update Manager':
+        //         updateManager();
+        case "Update Role":
+          updateRole();
+          break;
+        case "Remove Employee":
+          removeEmployee();
+          break;
+        case "Remove Role":
+          removeRole();
+          break;
+
+        case "Remove Departments":
+          removeDepartments();
+          break;
         default:
           console.log(`Invalid action: ${answer.action}`);
           break;
@@ -93,149 +94,153 @@ const viewEmployees = () => {
 };
 
 const viewDepartments = () => {
-    connection.query(
-      'SELECT id, name FROM department',
-      (err, res) => {
-        if (err) throw err;
-        console.table(res);
-        employeeTrack();
-      }
-    );
-  };
+  connection.query("SELECT id, name FROM department", (err, res) => {
+    if (err) throw err;
+    console.table(res);
+    employeeTrack();
+  });
+};
+
+const viewRoles = () => {
+  connection.query("Select * from role", (err, res) => {
+    if (err) throw err;
+    console.table(res);
+    employeeTrack();
+  });
+};
 
 const addEmployee = () => {
-    connection.query("SELECT id, title FROM role", (err, res) => {
+  connection.query("SELECT id, title FROM role", (err, res) => {
+    if (err) throw err;
+    const role = res.map((role) => {
+      return {
+        name: role.title,
+        value: role.id,
+      };
+    });
+    inquirer
+      .prompt([
+        {
+          name: "first",
+          type: "input",
+          message: "What is the employees first name?",
+        },
+        {
+          name: "last",
+          type: "input",
+          message: "What is the employees last name?",
+        },
+        {
+          name: "role",
+          type: "list",
+          message: "What is the role of the employee?",
+          choices: role,
+        },
+        {
+          name: "manager",
+          type: "input",
+          message: "Who is the employees manager (Id number)?",
+        },
+      ])
+      .then((answers) => {
+        connection.query(
+          `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${answers.first}", "${answers.last}", ${answers.role}, ${answers.manager})`,
+          (err, data) => {
+            if (err) throw err;
+            console.log("You've successfully added a new employee!");
+            employeeTrack();
+          }
+        );
+      });
+  });
+};
+
+const updateRole = () => {
+  // Query to get department names
+  connection.query(
+    'select*,a.id as empID, concat(first_name, " ", last_name) as concatName from employee a left join role b on a.role_id = b.id',
+    (err, res) => {
       if (err) throw err;
-      const role = res.map((role) => {
+      const employeeUpdate = res.map((employeeUpdate) => {
         return {
-          name: role.title,
-          value: role.id,
+          name: employeeUpdate.concatName,
+          value: employeeUpdate.empID,
+        };
+      });
+      const roleUpdate = res.map((roleUpdate) => {
+        return {
+          name: roleUpdate.title,
+          value: roleUpdate.id,
         };
       });
       inquirer
         .prompt([
           {
-            name: "first",
-            type: "input",
-            message: "What is the employees first name?",
-          },
-          {
-            name: "last",
-            type: "input",
-            message: "What is the employees last name?",
-          },
-          {
-            name: "role",
+            name: "employee",
             type: "list",
-            message: "What is the role of the employee?",
-            choices: role,
+            message: "Which employee would you like to update?",
+            choices: employeeUpdate,
           },
           {
-            name: "manager",
-            type: "input",
-            message: "Who is the employees manager (Id number)?",
+            name: "newRole",
+            type: "list",
+            message: "Choose a role for the new employee?",
+            choices: roleUpdate,
           },
         ])
         .then((answers) => {
           connection.query(
-            `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${answers.first}", "${answers.last}", ${answers.role}, ${answers.manager})`,
+            `UPDATE employee SET role_id = ${answers.newRole} where employee.id = ${answers.employee}`,
             (err, data) => {
               if (err) throw err;
-              console.log("You've successfully added a new employee!");
+              console.log("Role updated!");
               employeeTrack();
             }
           );
         });
-    });
-  };
-
-  const updateRole = () => {
-    // Query to get department names
-    connection.query("select*,a.id as empID, concat(first_name, \" \", last_name) as concatName from employee a left join role b on a.role_id = b.id", (err, res) => {
-        if (err) throw err;
-        const employeeUpdate = res.map((employeeUpdate) => {
-            return {
-                name: employeeUpdate.concatName,
-                value: employeeUpdate.empID,
-            };
-        });
-        const roleUpdate = res.map((roleUpdate) => {
-            return {
-                name: roleUpdate.title,
-                value: roleUpdate.id,
-            };
-        });
-        inquirer
-            .prompt([
-                {
-                    name: "employee",
-                    type: "list",
-                    message: "Which employee would you like to update?",
-                    choices: employeeUpdate,
-                },
-                {
-                    name: "newRole",
-                    type: "list",
-                    message: "Choose a role for the new employee?",
-                    choices: roleUpdate,
-                },
-            ])
-            .then((answers) => {
-                connection.query(
-                    `UPDATE employee SET role_id = ${answers.newRole} where employee.id = ${answers.employee}`,
-                    (err, data) => {
-                        if (err) throw err;
-                        console.log("Role updated!");
-                        employeeTrack();
-                    }
-                );
-            });
-    });
+    }
+  );
 };
 
-
-
-
-
 const addRole = () => {
-    // Query to get department names
-    connection.query("SELECT id, name FROM department", (err, res) => {
-        if (err) throw err;
-        const dept = res.map((department) => {
-            return {
-                name: department.name,
-                value: department.id,
-            };
-        });
-        inquirer
-            .prompt([{
-                    name: "title",
-                    type: "input",
-                    message: "Which role would you like to add?",
-                },
-                {
-                    name: "salary",
-                    type: "input",
-                    message: "What is the salary for this role?",
-                },
-                {
-                    name: "department",
-                    type: "list",
-                    message: "Which department does this role fall under?",
-                    choices: dept,
-                },
-            ])
-            .then((answers) => {
-                connection.query(
-                    `INSERT INTO role (title, salary, department_id) VALUES ("${answers.title}", ${answers.salary}, ${answers.department})`,
-                    (err, data) => {
-                        if (err) throw err;
-                        console.log("New role added!");
-                        employeeTrack();
-                    }
-                );
-            });
+  connection.query("SELECT id, name FROM department", (err, res) => {
+    if (err) throw err;
+    const dept = res.map((department) => {
+      return {
+        name: department.name,
+        value: department.id,
+      };
     });
+    inquirer
+      .prompt([
+        {
+          name: "title",
+          type: "input",
+          message: "Which role would you like to add?",
+        },
+        {
+          name: "salary",
+          type: "input",
+          message: "What is the salary for this role?",
+        },
+        {
+          name: "department",
+          type: "list",
+          message: "Which department does this role fall under?",
+          choices: dept,
+        },
+      ])
+      .then((answers) => {
+        connection.query(
+          `INSERT INTO role (title, salary, department_id) VALUES ("${answers.title}", ${answers.salary}, ${answers.department})`,
+          (err, data) => {
+            if (err) throw err;
+            console.log("New role added!");
+            employeeTrack();
+          }
+        );
+      });
+  });
 };
 // const viewByManager = () => {
 //     connection.query(
@@ -259,10 +264,9 @@ const addRole = () => {
 //   });
 // };
 
-
 // const getEmployeeArray = async () => {
 //     const emplpoyeeArray = await connection.promisifiedQuery("SELECT * FROM employee");
-  
+
 //     return employeeArray.map((employee) => {
 //       return {
 //         name: role.title,
@@ -283,16 +287,16 @@ const addRole = () => {
 //   });
 // };
 const getRoleArray = async () => {
-    const roleArray = await connection.promisifiedQuery("SELECT * FROM role");
-  
-    return roleArray.map((role) => {
-      return {
-        name: role.title,
-        value: role.id,
-      };
-    });
-  };
-  
+  const roleArray = await connection.promisifiedQuery("SELECT * FROM role");
+
+  return roleArray.map((role) => {
+    return {
+      name: role.title,
+      value: role.id,
+    };
+  });
+};
+
 const removeRole = async () => {
   const roleArray = await getRoleArray();
   inquirer
@@ -312,38 +316,76 @@ const removeRole = async () => {
         },
         (err, data) => {
           if (err) throw err;
+          console.log("Successfully removed role!");
+          employeeTrack();
         }
       );
     });
 };
 
 const removeEmployee = async () => {
-    connection.query("SELECT id, concat(first_name, \" \", last_name) as empName FROM employee", (err, res) => {
-        if (err) throw err;
-        const employee0 = res.map((employee) => {
-            return {
-                name: employee.empName,
-                value: employee.id,
-            };
+  connection.query(
+    'SELECT id, concat(first_name, " ", last_name) as empName FROM employee',
+    (err, res) => {
+      if (err) throw err;
+      const employee0 = res.map((employee) => {
+        return {
+          name: employee.empName,
+          value: employee.id,
+        };
+      });
+      inquirer
+        .prompt([
+          {
+            name: "removeEmployee",
+            type: "list",
+            message: "Choose an employee to remove:",
+            choices: employee0,
+          },
+        ])
+        .then((answers) => {
+          connection.query(
+            `DELETE FROM employee WHERE id = ${answers.removeEmployee}`,
+            (err, data) => {
+              if (err) throw err;
+              console.log("Successfully removed employee!");
+              employeeTrack();
+            }
+          );
         });
-        inquirer
-            .prompt([{
-                name: "removeEmployee",
-                type: "list",
-                message: "Choose an employee to remove:",
-                choices: employee0,   
-            }, ])
-            .then((answers) => {
-                connection.query(
-                    `DELETE FROM employee WHERE id = ${answers.removeEmployee}`,
-                    (err, data) => {
-                        if (err) throw err;
-                        console.log("Successfully removed employee!");
-                        employeeTrack();
-                    }
-                );
-            });
+    }
+  );
+};
+
+const removeDepartments = () => {
+  connection.query("SELECT id, name FROM department", (err, res) => {
+    if (err) throw err;
+    const dept = res.map((department) => {
+      return {
+        name: department.name,
+        value: department.id,
+      };
     });
+    inquirer
+      .prompt([
+        {
+          name: "removeDepartment",
+          type: "list",
+          message: "Which department would you like to remove?",
+          choices: dept,
+        },
+      ])
+      .then((answers) => {
+        connection.query(
+          `DELETE FROM department WHERE id = ${answers.removeDepartment}`,
+          (err, data) => {
+            if (err) throw err;
+            console.log("Successfully removed department!");
+            employeeTrack();
+          }
+        );
+      });
+  });
 };
 
 connection.connect((err) => {
