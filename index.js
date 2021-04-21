@@ -24,7 +24,6 @@ const employeeTrack = () => {
       message: "What would you like to do?",
       choices: [
         "View all Employees",
-        "View all Employees by Manager",
         "View Departments",
         "View Roles",
         "Add Employee",
@@ -43,9 +42,6 @@ const employeeTrack = () => {
         case "View all Employees":
           viewEmployees();
           break;
-        case "View all Employees by Manager":
-          viewByManager();
-          break;
         case "View Roles":
           viewRoles();
           break;
@@ -58,9 +54,9 @@ const employeeTrack = () => {
         case "Add Role":
           addRole();
           break;
-        // case 'Add Departments':
-        //     addDepartments();
-        //     break;
+        case 'Add Departments':
+            addDepartments();
+            break;
         //     case 'Update Manager':
         //         updateManager();
         case "Update Role":
@@ -155,6 +151,67 @@ const addEmployee = () => {
   });
 };
 
+const addRole = () => {
+    connection.query("SELECT id, name FROM department", (err, res) => {
+      if (err) throw err;
+      const dept = res.map((department) => {
+        return {
+          name: department.name,
+          value: department.id,
+        };
+      });
+      inquirer
+        .prompt([
+          {
+            name: "title",
+            type: "input",
+            message: "Which role would you like to add?",
+          },
+          {
+            name: "salary",
+            type: "input",
+            message: "What is the salary for this role?",
+          },
+          {
+            name: "department",
+            type: "list",
+            message: "Which department does this role fall under?",
+            choices: dept,
+          },
+        ])
+        .then((answers) => {
+          connection.query(
+            `INSERT INTO role (title, salary, department_id) VALUES ("${answers.title}", ${answers.salary}, ${answers.department})`,
+            (err, data) => {
+              if (err) throw err;
+              console.log("New role added!");
+              employeeTrack();
+            }
+          );
+        });
+    });
+  };
+
+  const addDepartment = () => {
+    inquirer
+        .prompt([{
+            name: "title",
+            type: "input",
+            message: "What is the title of the new department?",
+        }, ])
+        .then((answers) => {
+            connection.query(
+                `INSERT INTO department (name) VALUES ("${answers.title}")`,
+                (err, data) => {
+                    if (err) throw err;
+                    console.log("Successfully added new department!");
+                    employeeTrack();
+                }
+            );
+        });
+};
+
+
 const updateRole = () => {
   // Query to get department names
   connection.query(
@@ -202,46 +259,7 @@ const updateRole = () => {
   );
 };
 
-const addRole = () => {
-  connection.query("SELECT id, name FROM department", (err, res) => {
-    if (err) throw err;
-    const dept = res.map((department) => {
-      return {
-        name: department.name,
-        value: department.id,
-      };
-    });
-    inquirer
-      .prompt([
-        {
-          name: "title",
-          type: "input",
-          message: "Which role would you like to add?",
-        },
-        {
-          name: "salary",
-          type: "input",
-          message: "What is the salary for this role?",
-        },
-        {
-          name: "department",
-          type: "list",
-          message: "Which department does this role fall under?",
-          choices: dept,
-        },
-      ])
-      .then((answers) => {
-        connection.query(
-          `INSERT INTO role (title, salary, department_id) VALUES ("${answers.title}", ${answers.salary}, ${answers.department})`,
-          (err, data) => {
-            if (err) throw err;
-            console.log("New role added!");
-            employeeTrack();
-          }
-        );
-      });
-  });
-};
+
 // const viewByManager = () => {
 //     connection.query(
 //         'select a.id, a.first_name, a.last_name, title, department_id, salary, d.concatName from employee_db.employee a left join employee_db.role b on a.role_id=b.id left join employee_db.department c on b.department_id=c.id left join ( select a.first_name, a.last_name, concat(b.first_name,b.last_name) as concatName, a.manager_id,a.id from employee_db.employee a inner join employee_db.employee b on a.manager_id=b.id) d on a.id =d.id',
